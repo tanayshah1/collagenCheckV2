@@ -1,7 +1,7 @@
-import pandas as pd
+import csv
 
-# Read and print CSV file content
-df = pd.read_csv('cleaned_control_data.txt')
-#print(df.head())
-print(f'Number of columns: {df.shape[1]}')
-print(f'Number of rows: {df.shape[0]}')
+with open('cleaned_test_data.csv', 'r') as file:
+    reader = csv.reader(file)
+    headers = next(reader)  # Read the header row
+    for row in reader:
+        print(row[0])  # Access the first column

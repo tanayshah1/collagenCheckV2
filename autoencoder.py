@@ -1,23 +1,19 @@
 import torch
 import torch.nn as nn
 
-class Autoencoder(nn.Module):
-    def __init__(self, input_dim):
-        super(Autoencoder, self).__init__()
+class RatioAutoencoder(nn.Module):
+    def __init__(self):
+        super(RatioAutoencoder, self).__init__()
         self.encoder = nn.Sequential(
-            nn.Linear(input_dim, 50),  # Ensure this matches the number of features
-            nn.ReLU(),
-            nn.Linear(50, 25),
+            nn.Linear(10, 5),  # Adjust input and output dimensions as needed
             nn.ReLU()
         )
         self.decoder = nn.Sequential(
-            nn.Linear(25, 50),
-            nn.ReLU(),
-            nn.Linear(50, input_dim),  # Output should match input_dim
+            nn.Linear(5, 10),  # Adjust input and output dimensions as needed
             nn.Sigmoid()
         )
-
+    
     def forward(self, x):
-        encoded = self.encoder(x)
-        decoded = self.decoder(encoded)
-        return decoded
+        x = self.encoder(x)
+        x = self.decoder(x)
+        return x

@@ -1,43 +1,38 @@
-import numpy as np
-import joblib
-from sklearn.preprocessing import StandardScaler
-from sklearn.neural_network import MLPClassifier
-from sklearn.model_selection import train_test_split
+import torch
+import pandas as pd
+from torch.utils.data import Dataset, DataLoader
+from autoencoder import RatioAutoencoder
 
-# Load the cleaned control data
-def load_data(filename):
-    data = []
-    with open(filename, 'r') as file:
-        next(file)  # Skip header line
-        for line in file:
-            parts = line.strip().split()
-            line_number = int(parts[0])  # Extract the line number
-            values = list(map(float, parts[1:]))  # Convert the rest of the parts to floats
-            data.append(values)
-    return np.array(data)
+class RatioDataset(Dataset):
+    def __init__(self, csv_file):
+        self.data = pd.read_csv(csv_file)
+        self.X = self.data.values[:, 1:]  # Assuming the first column is the line number
+        self.X = torch.tensor(self.X, dtype=torch.float32)
+    
+    def __len__(self):
+        return len(self.X)
+    
+    def __getitem__(self, idx):
+        return self.X[idx]
 
-# Load and prepare data
-control_data = load_data('cleaned_control_data.csv')  # Ensure this is the correct file
+def train_model(train_csv, model_save_path, epochs=20, batch_size=64):
+    dataset = RatioDataset(train_csv)
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    model = RatioAutoencoder()
+    criterion = torch.nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
-# Check if the data has at least one feature
-if control_data.shape[1] <= 0:
-    raise ValueError("The cleaned control data does not contain enough features.")
+    for epoch in range(epochs):
+        for data in dataloader:
+            optimizer.zero_grad()
+            output = model(data)
+            loss = criterion(output, data)
+            loss.backward()
+            optimizer.step()
 
-X = control_data  # Features
-y = np.zeros(X.shape[0])  # Dummy target variable
+        print(f'Epoch {epoch+1}/{epochs}, Loss: {loss.item()}')
 
-# Split the data
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    torch.save(model.state_dict(), model_save_path)
 
-# Standardize the features
-scaler = StandardScaler()
-X_train = scaler.fit_transform(X_train)
-X_test = scaler.transform(X_test)
-
-# Initialize and train the model
-model = MLPClassifier(hidden_layer_sizes=(50, 25), max_iter=500, random_state=42)
-model.fit(X_train, y_train)
-
-# Save the model
-joblib.dump(model, 'trained_model.pkl')
-print("Model trained and saved as 'trained_model.pkl'.")
+# Example usage
+train_model('cleaned_control_data.csv', 'autoencoder_model.pth')
